@@ -1067,11 +1067,6 @@ struct controller_impl {
          [&](const auto& forkdb) { return forkdb.pending_head()->id(); });
    }
 
-   uint32_t fork_db_head_irreversible_blocknum() const {
-      return fork_db.apply<uint32_t>(
-         [&](const auto& forkdb) { return fork_db_head_or_pending(forkdb)->irreversible_blocknum(); });
-   }
-
    // --------------- access fork_db root ----------------------------------------------------------------------
    bool fork_db_has_root() const {
       return fork_db.apply<bool>([&](const auto& forkdb) { return !!forkdb.has_root(); });
@@ -1420,6 +1415,11 @@ struct controller_impl {
                      "The first block ${lib_num} when starting with an empty block log should be the block after fork database root ${bn}.",
                      ("lib_num", lib_num)("bn", fork_db_root_block_num()) );
       }
+
+      auto fork_db_head_irreversible_blocknum = [&]() {
+         return fork_db.apply<uint32_t>(
+            [&](const auto& forkdb) { return forkdb.pending_head()->irreversible_blocknum(); });
+      };
 
       const block_id_type irreversible_block_id = if_irreversible_block_id.load();
       const uint32_t savanna_lib_num = block_header::num_from_id(irreversible_block_id);

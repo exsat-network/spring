@@ -1358,6 +1358,8 @@ struct controller_impl {
          assert(prev);
          for (auto bitr = legacy_branch.rbegin(); bitr != legacy_branch.rend(); ++bitr) {
             assert(read_mode == db_read_mode::IRREVERSIBLE || (*bitr)->action_mroot_savanna.has_value());
+            if (read_mode != db_read_mode::IRREVERSIBLE && !(*bitr)->is_valid())
+               break;
             const bool skip_validate_signee = true; // validated already
             auto new_bsp = block_state::create_transition_block(
                   *prev,
@@ -1368,9 +1370,8 @@ struct controller_impl {
             transition_add_to_savanna_fork_db(forkdb, *bitr, new_bsp, prev);
             prev = new_bsp;
          }
-         assert(read_mode == db_read_mode::IRREVERSIBLE || forkdb.head()->id() == legacy_branch.front()->id());
          if (read_mode != db_read_mode::IRREVERSIBLE)
-            chain_head = block_handle{forkdb.head()};
+            chain_head = block_handle{prev};
          ilog("Transition to instant finality happening after block ${b}, First IF Proper Block ${pb}", ("b", prev->block_num())("pb", prev->block_num()+1));
       });
 
@@ -1720,7 +1721,7 @@ struct controller_impl {
       }
 
       auto replay_fork_db = [&](auto& forkdb) {
-         using BSP = std::decay_t<decltype(forkdb.head())>;
+         using BSP = std::decay_t<decltype(forkdb.root())>;
 
          auto pending_head = forkdb.pending_head();
          if( pending_head && blog_head && start_block_num <= blog_head->block_num() ) {

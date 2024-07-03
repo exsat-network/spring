@@ -1045,17 +1045,8 @@ struct controller_impl {
    }
 
    // --------------- access fork_db head ----------------------------------------------------------------------
-   template <typename ForkDB>
-   typename ForkDB::bsp_t fork_db_head_or_pending(const ForkDB& forkdb) const {
-      if (irreversible_mode()) {
-         // When in IRREVERSIBLE mode fork_db blocks are marked valid when they become irreversible so that
-         // fork_db.head() returns irreversible block
-         // Use pending_head since this method should return the chain head and not last irreversible.
-         return forkdb.pending_head();
-      } else {
-         return forkdb.head();
-      }
-   }
+   // When in IRREVERSIBLE mode fork_db blocks are marked valid when they become irreversible so that
+   // fork_db.head() / chain_head is the irreversible block
 
    uint32_t fork_db_head_block_num() const {
       return fork_db.apply<uint32_t>(
@@ -1354,7 +1345,7 @@ struct controller_impl {
       block_state_legacy_ptr legacy_root;
       fork_db.apply_l<void>([&](const auto& forkdb) {
          legacy_root = forkdb.root();
-         legacy_branch = forkdb.fetch_branch(fork_db_head_or_pending(forkdb)->id());
+         legacy_branch = forkdb.fetch_branch(forkdb.pending_head()->id());
       });
 
       assert(!!legacy_root);
@@ -1431,8 +1422,8 @@ struct controller_impl {
 
       bool savanna_transistion_required = false;
       auto mark_branch_irreversible = [&, this](auto& forkdb) {
-         auto branch = savanna ? forkdb.fetch_branch( fork_db_head_or_pending(forkdb)->id(), irreversible_block_id)
-                               : forkdb.fetch_branch( fork_db_head_or_pending(forkdb)->id(), new_lib_num );
+         auto branch = savanna ? forkdb.fetch_branch( forkdb.pending_head()->id(), irreversible_block_id)
+                               : forkdb.fetch_branch( forkdb.pending_head()->id(), new_lib_num );
          try {
             auto should_process = [&](auto& bsp) {
                // Only make irreversible blocks that have been validated. Blocks in the fork database may not be on our current best head

@@ -1350,7 +1350,7 @@ struct controller_impl {
       block_state_legacy_ptr legacy_root;
       fork_db.apply_l<void>([&](const auto& forkdb) {
          legacy_root = forkdb.root();
-         legacy_branch = forkdb.fetch_branch(forkdb.pending_head()->id());
+         legacy_branch = forkdb.fetch_branch(chain_head.id());
       });
 
       assert(!!legacy_root);
